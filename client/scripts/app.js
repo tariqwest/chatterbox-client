@@ -18,13 +18,13 @@ $('document').ready(function(){
 
   app.friends = {};
 
-  app.server = 'http://parse.sfm6.hackreactor.com';
+  app.server = 'http://parse.sfm6.hackreactor.com/chatterbox/classes/messages';
 
   app.send = (message) => {
     //Create new message
     $.ajax({
       // This is the url you should use to communicate with the parse API server.
-      url: app.server + '/chatterbox/classes/messages',
+      url: app.server,
       type: 'POST',
       data: JSON.stringify(message),
       contentType: 'application/json',
@@ -43,15 +43,15 @@ $('document').ready(function(){
 
     //room = room || 'Lobby';
 
-    var queryData = '';
+    var queryData = 'order=-createdAt&limit=500';
     if(room !== undefined){
-      queryData = 'where={"roomname":' + '"' + room + '"}';
-    };
+      queryData += '&where={"roomname":' + '"' + room + '"}';
+    }
 
     //Get message
     $.ajax({
       // This is the url you should use to communicate with the parse API server.
-      url: app.server + '/chatterbox/classes/messages/?order=-createdAt&limit=500&',
+      url: app.server,
       type: 'GET',
       data: queryData,
       contentType: 'application/json',
@@ -60,7 +60,6 @@ $('document').ready(function(){
         //app.getRooms();
         //app.clearMessages();
         if(afterFetch !== undefined){
-          console.log(afterFetchArgs)
           afterFetch(afterFetchArgs);
         }else{
           app.renderRoom();
@@ -75,13 +74,13 @@ $('document').ready(function(){
   };
 
   app.clearMessages = () => {
-    $('.message').remove();
+    $('#chats').children().remove();
   };
 
   app.renderMessage = (message) => {
     var friendClass = '';
     if (app.friends.hasOwnProperty(message.username)){
-        friendClass = 'friend';
+      friendClass = 'friend';
     }
 
     $node = $(
@@ -149,10 +148,10 @@ $('document').ready(function(){
 
   app.getRooms = () => {
     var roomObjects = undefined;
-    var queryData = 'keys=roomname';
+    var queryData = 'order=-createdAt&limit=500&keys=roomname';
     $.ajax({
       // This is the url you should use to communicate with the parse API server.
-      url: app.server + '/chatterbox/classes/messages/?order=-createdAt&limit=500&',
+      url: app.server,
       type: 'GET',
       data: queryData,
       contentType: 'application/json',
