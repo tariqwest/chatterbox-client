@@ -5,6 +5,7 @@ $('document').ready(function(){
 
   app.init = () => {
     console.log('initialized');
+    app.getRooms();
     app.handleSubmit();
     app.handleRoomSelect();
     app.handleUsernameClick();
@@ -56,7 +57,7 @@ $('document').ready(function(){
       contentType: 'application/json',
       success: function (data) {
         app.messages = data.results;
-        app.getRooms();
+        //app.getRooms();
         app.renderRoom();
         //app.clearMessages();
         if(afterFetch !== undefined){
@@ -84,11 +85,11 @@ $('document').ready(function(){
 
     $node = $(
       `  
-      <div class="message ${friendClass}" data-roomname="${message.roomname}" >
+      <div class="message ${friendClass}" data-roomname="${filterXSS(message.roomname)}" >
           <span class='username'>${filterXSS(message.username)}</span>
           <span>${filterXSS(message.text)}</span>
           <span>${message.createdAt}</span>
-          <span><b>${message.roomname}</b></span>
+          <span><b>${filterXSS(message.roomname)}</b></span>
       </div>
 
       `);
@@ -163,25 +164,29 @@ $('document').ready(function(){
         console.error('chatterbox: Failed to retrieve message', data);
       }
     });
-
-    console.log(roomObjects);
   };
 
   app.generateRoomList = (roomObjects) => {
     $('select').remove();
-    for (let i=0; i< roomObjects.length; i++) {
-      if(!app.rooms.hasOwnProperty(roomObjects[i].roomname) && roomObjects[i].roomname !== undefined) {
-        app.rooms[roomObjects[i].roomname] = roomObjects[i].roomname;
-        
-      }
+    
+    var roomNames = [];
+    for (var i=0; i<roomObjects.length; i++){
+      roomNames.push(roomObjects[i].roomname);
     }
+
+    roomNames = _.uniq(roomNames);
+
+    roomNames.sort();
+
+    app.rooms = roomNames;
+
     var $list = $('<select></select>');
-    for (var room in app.rooms){
-      var $listItem = `<option>${room}</option>`;
+    for (var i=0; i < app.rooms.length; i++){
+      var $listItem = `<option>${filterXSS(app.rooms[i])}</option>`;
       $($list).append($listItem);
     }
     $('#roomList').append($list);
-  },
+  };
 
   class Message{
     constructor(username, text, roomname){
