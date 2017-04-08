@@ -58,11 +58,12 @@ $('document').ready(function(){
       success: function (data) {
         app.messages = data.results;
         //app.getRooms();
-        app.renderRoom();
         //app.clearMessages();
         if(afterFetch !== undefined){
           console.log(afterFetchArgs)
           afterFetch(afterFetchArgs);
+        }else{
+          app.renderRoom();
         }
         //console.log(app.messages);
       },
