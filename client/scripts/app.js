@@ -1,10 +1,7 @@
 
 $('document').ready(function(){
 
-  var app = {
-
-
-  };
+  var app = {};
 
   app.init = () => {
     console.log('initialized');
@@ -36,17 +33,21 @@ $('document').ready(function(){
     });
   };
 
-  app.fetch = () => {
+  app.fetch = (afterFetch, args) => {
     //Get message
     $.ajax({
       // This is the url you should use to communicate with the parse API server.
-      url: app.server + '/chatterbox/classes/messages/?order=-createdAt',
+      url: app.server + '/chatterbox/classes/messages/?order=-createdAt&limit=500',
       type: 'GET',
       //data: JSON.stringify("/chatterbox/classes/messages/BEF3V4Qzev"),
       contentType: 'application/json',
       success: function (data) {
         app.messages = data.results;
         app.getRooms();
+        if(afterFetch !== undefined){
+          afterFetch(args);
+        }
+        app.clearMessages();
         //console.log(app.messages);
       },
       error: function (data) {
@@ -75,7 +76,7 @@ $('document').ready(function(){
   };
 
   app.renderRoom = (room) => {
-    //app.clearMessages();
+    app.clearMessages();
     for (var i = 0; i < app.messages.length; i++) {
       if (app.messages[i].roomname === room){
         app.renderMessage(app.messages[i]);
@@ -99,12 +100,13 @@ $('document').ready(function(){
       var room = $('#roomList').find('select option:selected').text();
       var message = new Message(username, text, room);
       app.send(message);
-      app.clearMessages();
-      app.renderRoom(room);
+      app.fetch();
+      //app.fetch(app.renderRoom, room);
     });
   };
 
   app.getRooms = () => {
+    $('select').remove();
     var rooms = {};
     for (let i=0; i<app.messages.length; i++) {
       if(!rooms.hasOwnProperty(app.messages[i].roomname)){
