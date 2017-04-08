@@ -7,10 +7,15 @@ $('document').ready(function(){
     console.log('initialized');
     app.handleSubmit();
     app.handleRoomSelect();
+    app.handleUsernameClick();
     app.fetch();
   };
 
-  app.messages = {"test" : "yo"};
+  app.messages = {};
+
+  app.rooms = {};
+
+  app.friends = {};
 
   app.server = 'http://parse.sfm6.hackreactor.com';
 
@@ -33,21 +38,31 @@ $('document').ready(function(){
     });
   };
 
-  app.fetch = (afterFetch, args) => {
+  app.fetch = (room, afterFetch, afterFetchArgs) => {
+
+    //room = room || 'Lobby';
+
+    var queryData = '';
+    if(room !== undefined){
+      queryData = 'where={"roomname":' + '"' + room + '"}';
+    };
+
     //Get message
     $.ajax({
       // This is the url you should use to communicate with the parse API server.
-      url: app.server + '/chatterbox/classes/messages/?order=-createdAt&limit=500',
+      url: app.server + '/chatterbox/classes/messages/?order=-createdAt&limit=500&',
       type: 'GET',
-      //data: JSON.stringify("/chatterbox/classes/messages/BEF3V4Qzev"),
+      data: queryData,
       contentType: 'application/json',
       success: function (data) {
         app.messages = data.results;
         app.getRooms();
+        app.renderRoom();
+        //app.clearMessages();
         if(afterFetch !== undefined){
-          afterFetch(args);
+          console.log(afterFetchArgs)
+          afterFetch(afterFetchArgs);
         }
-        app.clearMessages();
         //console.log(app.messages);
       },
       error: function (data) {
@@ -62,21 +77,30 @@ $('document').ready(function(){
   };
 
   app.renderMessage = (message) => {
+    var friendClass = '';
+    if (app.friends.hasOwnProperty(message.username)){
+        friendClass = 'friend';
+    }
+
     $node = $(
       `  
-      <div class="message" data-roomname="${message.roomname}" >
-          <span>${filterXSS(message.username)}</span>
+      <div class="message ${friendClass}" data-roomname="${message.roomname}" >
+          <span class='username'>${filterXSS(message.username)}</span>
           <span>${filterXSS(message.text)}</span>
           <span>${message.createdAt}</span>
           <span><b>${message.roomname}</b></span>
       </div>
 
       `);
+
     $('#chats').append($node);
   };
 
   app.renderRoom = (room) => {
     app.clearMessages();
+    if (room === undefined){
+      room = $('#roomList').find('select option:first').text();
+    }
     for (var i = 0; i < app.messages.length; i++) {
       if (app.messages[i].roomname === room){
         app.renderMessage(app.messages[i]);
@@ -87,11 +111,26 @@ $('document').ready(function(){
   app.handleRoomSelect = () => {
     $('#roomList').on('change', 'select', function(event) {
       //console.log($(this).val());
-      app.renderRoom($(this).val());      
+      var room = $(this).val();
+      app.fetch(room, app.renderRoom, room);
+      //app.renderRoom($(this).val());      
     });
   };
 
-  app.handleUsernameClick = () => {};
+  app.handleUsernameClick = () => {
+    $('#chats').on('click', '.username', function(event){
+      var username = $(this).text();
+      if (!app.friends.hasOwnProperty(username)){  
+        app.friends[username] = username;
+      } else {
+        delete app.friends[username];
+      }
+      console.log(app.friends);
+      //$(this).css('font-weight', 'bold');
+      var room = $('#roomList').find('select option:selected').text();
+      app.renderRoom(room);
+    });
+  };
 
   app.handleSubmit = () => {
     $('#submit').on('click', (event) => {
@@ -100,26 +139,49 @@ $('document').ready(function(){
       var room = $('#roomList').find('select option:selected').text();
       var message = new Message(username, text, room);
       app.send(message);
-      app.fetch();
-      //app.fetch(app.renderRoom, room);
+      //app.fetch();
+      app.fetch(undefined, app.renderRoom, room);
+      $('#messageField').val('');
     });
   };
 
   app.getRooms = () => {
+    var roomObjects = undefined;
+    var queryData = 'keys=roomname';
+    $.ajax({
+      // This is the url you should use to communicate with the parse API server.
+      url: app.server + '/chatterbox/classes/messages/?order=-createdAt&limit=500&',
+      type: 'GET',
+      data: queryData,
+      contentType: 'application/json',
+      success: function (data) {
+        roomObjects = data.results;
+        app.generateRoomList(roomObjects);
+      },
+      error: function (data) {
+        // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
+        console.error('chatterbox: Failed to retrieve message', data);
+      }
+    });
+
+    console.log(roomObjects);
+  };
+
+  app.generateRoomList = (roomObjects) => {
     $('select').remove();
-    var rooms = {};
-    for (let i=0; i<app.messages.length; i++) {
-      if(!rooms.hasOwnProperty(app.messages[i].roomname)){
-        rooms[app.messages[i].roomname] = app.messages[i].roomname;
+    for (let i=0; i< roomObjects.length; i++) {
+      if(!app.rooms.hasOwnProperty(roomObjects[i].roomname) && roomObjects[i].roomname !== undefined) {
+        app.rooms[roomObjects[i].roomname] = roomObjects[i].roomname;
+        
       }
     }
     var $list = $('<select></select>');
-    for (var room in rooms){
+    for (var room in app.rooms){
       var $listItem = `<option>${room}</option>`;
       $($list).append($listItem);
     }
     $('#roomList').append($list);
-  };
+  },
 
   class Message{
     constructor(username, text, roomname){
@@ -132,26 +194,8 @@ $('document').ready(function(){
 
   app.init();
   window.app = app;
-
 });
 
-
-// // Update message
-// $.ajax({
-//   // This is the url you should use to communicate with the parse API server.
-//   url: 'http://parse.sfm6.hackreactor.com/chatterbox/classes/messages/BEF3V4Qzev',
-//   type: 'PUT',
-//   data: JSON.stringify(message),
-//   contentType: 'application/json',
-//   success: function (data) {
-//   	console.log(data);
-//     //console.log('chatterbox: Message sent');
-//   },
-//   error: function (data) {
-//     // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
-//     console.error('chatterbox: Failed to retrieve message', data);
-//   }
-// });
 
 // //Get message
 // $.ajax({
