@@ -7,6 +7,7 @@
 
     <!-- dependencies -->
     <script src="bower_components/jquery/dist/jquery.js"></script>
+
     <script>
       // YOU DO NOT NEED TO EDIT THIS CODE
       if (!/(&|\?)username=/.test(window.location.search)) {
@@ -19,14 +20,17 @@
       }
     </script>
     <!-- your scripts -->
+    <script src="bower_components/underscore/underscore.js"></script>
+    <script src="bower_components/xss/dist/xss.js"></script>      
     <script src="env/config.js"></script>
     <script src="scripts/app.js"></script>
   </head>
   <body>
     <div id="main">
       <h1>chatterbox</h1>
-      <!-- Your HTML goes here! -->
+      <input type="text" id="messageField" placeholder="enter your message">
+      <button type="button" id="submit">Send</button>
     </div>
-    <div id="chats"></div>
+    <div id="chats">hello</div>
   </body>
 </html>
