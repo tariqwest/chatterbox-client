@@ -1,18 +1,19 @@
 
 $('document').ready(function(){
 
-  var message = {
-    username: 'shawndrost',
-    text: 'trololo ++',
-    roomname: '4chan'
-  };
+  var app = {
 
-  var app = {};
+
+  };
 
   app.init = () => {
     console.log('initialized');
     app.handleSubmit();
+    app.handleRoomSelect();
+    app.fetch();
   };
+
+  app.messages = {"test" : "yo"};
 
   app.server = 'http://parse.sfm6.hackreactor.com';
 
@@ -25,8 +26,8 @@ $('document').ready(function(){
       data: JSON.stringify(message),
       contentType: 'application/json',
       success: function (data) {
-        console.log(data);
-        console.log('chatterbox: Message sent');
+        //console.log(data);
+        //console.log('chatterbox: Message sent');
       },
       error: function (data) {
         // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
@@ -39,14 +40,14 @@ $('document').ready(function(){
     //Get message
     $.ajax({
       // This is the url you should use to communicate with the parse API server.
-      url: app.server + '/chatterbox/classes/messages/',
+      url: app.server + '/chatterbox/classes/messages/?order=-createdAt',
       type: 'GET',
       //data: JSON.stringify("/chatterbox/classes/messages/BEF3V4Qzev"),
       contentType: 'application/json',
       success: function (data) {
-        console.log(data);
-        app.renderMessage(data);
-        //console.log('chatterbox: Message sent');
+        app.messages = data.results;
+        app.getRooms();
+        //console.log(app.messages);
       },
       error: function (data) {
         // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
@@ -56,15 +57,37 @@ $('document').ready(function(){
   };
 
   app.clearMessages = () => {
-
+    $('.message').remove();
   };
 
-  app.renderMessage = () => {
+  app.renderMessage = (message) => {
+    $node = $(
+      `  
+      <div class="message" data-roomname="${message.roomname}" >
+          <span>${filterXSS(message.username)}</span>
+          <span>${filterXSS(message.text)}</span>
+          <span>${message.createdAt}</span>
+          <span><b>${message.roomname}</b></span>
+      </div>
 
+      `);
+    $('#chats').append($node);
   };
 
-  app.renderRoom = () => {
+  app.renderRoom = (room) => {
+    //app.clearMessages();
+    for (var i = 0; i < app.messages.length; i++) {
+      if (app.messages[i].roomname === room){
+        app.renderMessage(app.messages[i]);
+      }
+    }
+  };
 
+  app.handleRoomSelect = () => {
+    $('#roomList').on('change', 'select', function(event) {
+      //console.log($(this).val());
+      app.renderRoom($(this).val());      
+    });
   };
 
   app.handleUsernameClick = () => {};
@@ -73,10 +96,27 @@ $('document').ready(function(){
     $('#submit').on('click', (event) => {
       var username = window.location.search.slice(10); // make less hacky
       var text = filterXSS($('#messageField').val());
-      var message = new Message(username, text, 'roomname');
-      //console.log(JSON.stringify(message));
+      var room = $('#roomList').find('select option:selected').text();
+      var message = new Message(username, text, room);
       app.send(message);
+      app.clearMessages();
+      app.renderRoom(room);
     });
+  };
+
+  app.getRooms = () => {
+    var rooms = {};
+    for (let i=0; i<app.messages.length; i++) {
+      if(!rooms.hasOwnProperty(app.messages[i].roomname)){
+        rooms[app.messages[i].roomname] = app.messages[i].roomname;
+      }
+    }
+    var $list = $('<select></select>');
+    for (var room in rooms){
+      var $listItem = `<option>${room}</option>`;
+      $($list).append($listItem);
+    }
+    $('#roomList').append($list);
   };
 
   class Message{
@@ -85,24 +125,11 @@ $('document').ready(function(){
       this.text = text;
       this.roomname = roomname;
       this.createdAt;
-      this.$node = $(
-      `  
-      <div>
-          <span>${this.username}</span>
-          <span>${this.messsage}</span>
-          <span>${this.createdAt}</span>
-      </div>
-
-      `);
     }
   }
 
-  // Prevent XSS
-  for(var key in message){
-    message[key] = filterXSS(message[key]);
-  }
-
   app.init();
+  window.app = app;
 
 });
 
