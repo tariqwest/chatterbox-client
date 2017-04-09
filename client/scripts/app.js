@@ -137,12 +137,16 @@ $('document').ready(function(){
     $('#submit').on('click', (event) => {
       var username = window.location.search.slice(10); // make less hacky
       var text = filterXSS($('#messageField').val());
-      var room = $('#roomList').find('select option:selected').text();
+      var room = filterXSS($('#roomnameField').val());
+      if(room.length === 0){
+        room = $('#roomList').find('select option:selected').text();
+      }
       var message = new Message(username, text, room);
       app.send(message);
       //app.fetch();
       app.fetch(undefined, app.renderRoom, room);
       $('#messageField').val('');
+      $('#roomnameField').val('');
     });
   };
 
